@@ -18,13 +18,38 @@ class PasswordStrengthMeterTest {
         assertThat(sut.meter()).isEqualTo(PasswordStrength.STRONG)
     }
 
+    @Test
+    fun 두개의_규칙을_충족하면_NORMAL() {
+        val sut = PasswordStrengthMeter("12345678")
+        assertThat(sut.meter()).isEqualTo(PasswordStrength.NORMAL)
+    }
+
+    @Test
+    fun 한개_이하_규칙을_충족하면_WEAK() {
+        val sut = PasswordStrengthMeter("1234567")
+        assertThat(sut.meter()).isEqualTo(PasswordStrength.WEAK)
+    }
+
+    @Test
+    fun 빈값이_들어올경우_WEAK() {
+        val sut = PasswordStrengthMeter("")
+        assertThat(sut.meter()).isEqualTo(PasswordStrength.WEAK)
+    }
+
+    @Test
+    fun null_이_들어오면_WEAK() {
+        val sut = PasswordStrengthMeter(null)
+        assertThat(sut.meter()).isEqualTo(PasswordStrength.WEAK)
+    }
+
 }
 
 class PasswordStrengthMeter(
-        private val password: String,
+        private val password: String?,
 ) {
     fun meter(): PasswordStrength {
         var checkCounter = 0;
+        password?:return PasswordStrength.WEAK
         if (checkLetterSize()) checkCounter++
         if (checkNumber()) checkCounter++
         if (checkCapitalLetter()) checkCounter++
@@ -34,10 +59,10 @@ class PasswordStrengthMeter(
         return PasswordStrength.WEAK
     }
 
-    private fun checkLetterSize() = password.length >= 8
+    private fun checkLetterSize() = password!!.length >= 8
 
     private fun checkNumber(): Boolean {
-        val char = password.toCharArray()
+        val char = password!!.toCharArray()
         for (c in char) {
             if (c in '0'..'9') return true
         }
@@ -45,7 +70,7 @@ class PasswordStrengthMeter(
     }
 
     private fun checkCapitalLetter(): Boolean {
-        val char = password.toCharArray()
+        val char = password!!.toCharArray()
         for (c in char) {
             if (c in 'A'..'Z') return true
         }
