@@ -69,7 +69,7 @@ class PasswordStrengthMeter(
             if (c in '0'..'9') return true
         }
         return false
-        //주석1
+        //주석2
     }
 
     private fun checkCapitalLetter(): Boolean {
