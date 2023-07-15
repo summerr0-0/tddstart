@@ -50,6 +50,7 @@ class PasswordStrengthMeter(
     fun meter(): PasswordStrength {
         var checkCounter = 0;
         password?:return PasswordStrength.WEAK
+
         if (checkLetterSize()) checkCounter++
         if (checkNumber()) checkCounter++
         if (checkCapitalLetter()) checkCounter++
