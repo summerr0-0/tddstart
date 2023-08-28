@@ -55,3 +55,108 @@
 ## WireMock을 이용한 REST 클라이언트 테스트
 * wireMock을 이용하면 외부 api 의존 없이 테스트가 가능하다
 * https://wiremock.org/docs/
+
+##Spring Boot를 이용한 테스트
+`@SpringBootTest` 사용하면 내장톰캣을 이용해 테스트를 진행할 수 있다
+
+
+# 10 테스트 코드와 유지보수
+### 깨지는 테스트 코드를 방치하지 말자
+  * 테스트코드는 코드를 변경했을 때 기존 기능이 올바르게 동작하는지 확인하는 수단이다
+  * 놓치는 경우 기존 기능이 제대로 돌아가는지 확인하기 어렵다
+
+### 변수와 필드를 사용해서 기댓값 표현하지 말기
+```java
+  LocalDate date = LocalDate.of(2023,8,30);
+        String dateStr = formatDate(date);
+        essertEquals(
+                //필드를 사용해서 검증하고 있다
+                date.getYear() + "년" +
+        date.getMonthValue() + "월", +
+        date.getDayOfMonth() + "일", dateStr)
+            //대신
+        essertEquals("2023년 8월 15일", dateStr)
+```
+* 변수와 필드를 이용하면 복잡도가 증가한다
+* 테스트가 실패할 때 왜 실패하는지 직관적으로 알기 어렵다
+
+### 두개 이상을 검증하지 않기
+* 한 테스트 메서드에 여러 검증을 섞지 않기
+* 테스트가 실패할 때 무엇이 잘못되었는지 빠르게 알 수 있다
+
+### 정확하게 일치하는 값으로 모의객체 설정하지 않기
+```java
+    BDDMockito
+        .given(mockPasswordChecker.checkPasswordWeak("pw"))
+        .willReturn(true);
+
+//대신
+      BDDMockito
+        .given(mockPasswordChecker.checkPasswordWeak(anyString()))
+        .willReturn(true);
+```
+* 인자가 pw일때만 동작하는 모의객체
+* 다른 값이 들어가면 잘 동작하는 코드더라도 바로 테스트에 실패해버린다
+* 범용적인 값을 사용해서 작성하기
+
+### 과도하게 구현 검증하지 않기
+* 내부 구현을 검증하지 않기
+  * 구현을 조금만 변경해도 테스트가 깨져버린다
+
+### 셋업을 이용해서 중복된 상황 설정하지 않기
+* @BeforeEach를 이용해서 상황 구성  
+* 셋업을 많이 사용하면  테스트 하나를 분석하기 어렵다
+* 통합 테스트에서 데이터 공유 주의하기
+  * 테스트 할 때 두가지로 고민해보기  
+    * 모든 테스트가 같은 값은 값을 사용하는 데이터
+    * 테스트 메소드에만 필요한 데이터
+*  보조 클래스
+  * 상활설정을 위한 보조클래스를 만들어서 중복상황 제거하기
+
+### 실행환경
+* 로컬에선 성공하는데 빌드에서 실패하면 안된다
+* 상대경로 사용하기
+* @nableOnOs
+
+### 실행 시점에 따라 다른 테스트코드
+```java
+@Test
+void notExpired(){
+        LocalDateTime expiry=LocalDateTime.of(2029,12,31,0,0,0);
+        Member m=Member.builder().expiryDate(expiry).build();
+        assertFalse(m.isExpiredO);
+        }
+
+
+        LocalDateTime expiry = LocalDateTime.of(2019,12, 31, 0, 0, 0);
+        Member m = Member.builder().expiryDate(expiry).build(); 
+        assertFalse(m.passedExpiryDate(LocalDateTime.of(2019,12, 30, 0, 0, 0));    
+```
+* 이 테스트는 2029년 12월 31일이 지나면 깨지게 된다
+* 시간을 제어하기 위해서 expiryDate의 시간을 파라미터로 전달받자
+* 혹은 테스트해야 할 클래스를 상속받아서 시간을 재정의하자
+* 랜덤하게 실패하지 않기
+  * 랜덤 값 생성을 별도 타입으로 분리하고 대역으로 대체하기
+    
+
+#### 랜덤
+### 필요하지 않은 값
+* 검증에 필요없는 값을 넣으면 테스트가 복잡해진다
+* id검증을 위한 테스트인데 User 객체에 이름, 나이, 이메일 등이 들어간 경우 보조 클래스
+* 필요하지 않은 값을 넣기 위해 테스트 객체 생성 클래스만들자
+  * 팩토리 클래스, 빌더패턴
+
+### 조건부 검증
+* assert 검증할때 if 넣지 않기
+* 통합테스트는 필요한 범위까지만 연동하기
+* 데이터베이스 테스트를 사용하는데 `@SpringBootTest`
+  * 모든 스프링 빈을 초기화해버린다
+  * 느린 테스트가된다
+* 대신 `@JdbcTest`를 이용하면 DB연동과 관련된 설정만 초기화 된다
+
+### 쓸모없는 테스트코드
+* 소프트웨어가 제공가는 기능을 검증하지 않는 테스트
+  * 라이브러리 연습용 테스트코드
+* 단순한 메서드
+  * getter, setter 테스트코드
+* 단순히 커버리지를 올리기 위한 테스트코드를 만들지 말자
